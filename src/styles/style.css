@@ -1,0 +1,28 @@
+.leaflet-container {
+    border-radius: 10px;
+    height: 100%;
+    width: 100%;
+  }
+  
+  /* Add hover effect for markers */
+  .leaflet-marker-icon:hover {
+    transform: scale(1.1);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  /* Button styling */
+  .btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease-in-out;
+  }
+  
+  .btn:hover {
+    background-color: #1c2833;
+  }
