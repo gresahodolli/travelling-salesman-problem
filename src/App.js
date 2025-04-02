@@ -36,21 +36,24 @@ function App() {
   const [manualPoints, setManualPoints] = useState([]);
   const [mapCenter, setMapCenter] = useState([42.58, 21.0]);
   const [mapZoom, setMapZoom] = useState(9);
+  const [routeCities, setRouteCities] = useState([]);
 
   const processAlgorithm = useCallback((selectedCities, forceRun = false) => {
     if (selectedCities.length < 2) return;
 
     const closedLoop = [...selectedCities];
+    setRouteCities([...selectedCities]); // ruaj qytetet reale pa kthimin
     if (closedLoop[0] !== closedLoop[closedLoop.length - 1]) {
       closedLoop.push(closedLoop[0]);
     }
-
+    
     if ((algorithm === 'bruteforce' || algorithm === 'dynamic') && closedLoop.length > 10 && !forceRun) {
       setOpenDialog(true);
       return;
     }
 
     const updateMapView = () => {
+      if (!manualMode) return; // vetëm në modalitetin manual
       if (mapRef.current) {
         const group = L.featureGroup(closedLoop.map(c => L.marker([c.lat, c.lon])));
         const bounds = group.getBounds();
@@ -79,7 +82,8 @@ function App() {
         setKey(prevKey => prevKey + 1);
       };
     }
-  }, [algorithm]);
+  }, [algorithm, manualMode]);
+
 
   const handleDialogClose = (accept) => {
     setOpenDialog(false);
@@ -94,7 +98,7 @@ function App() {
     if (points.length >= 2) {
       processAlgorithm(points);
     }
-  }, [algorithm, manualMode, processAlgorithm]);
+  }, [algorithm, manualMode, manualPoints, processAlgorithm]);
 
   const handleMapClick = (latlng) => {
     if (manualMode) {
@@ -127,8 +131,8 @@ function App() {
           <Typography variant="body2" style={{ marginTop: 10 }}>
             {algorithmDescriptions[algorithm]}
           </Typography>
-          <Typography variant="h6" style={{ marginTop: 20 }}>
-            Number of Cities: {manualMode ? manualPoints.length : bestPath.length}
+          <Typography variant="h6">
+            Number of Cities: {manualMode ? manualPoints.length : routeCities.length}
           </Typography>
           <Typography variant="h6">
             Total Distance: {totalDistance.toFixed(2)} km
@@ -139,10 +143,14 @@ function App() {
             style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
             onClick={() => {
               setManualMode(false);
+              setBestPath([]);
+              setRouteCities([]);
+              setMapCenter([42.58, 21.0]);
+              setMapZoom(9);
               processAlgorithm(cities);
-            }}
+            }}            
           >
-            Recalculate Path
+            Recalculate Path Auto
           </Button>
           <Button 
             variant="text" 
