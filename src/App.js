@@ -16,10 +16,15 @@ const algorithmDescriptions = {
   approximation: "Approximation Algorithm provides a quick heuristic solution. It does not guarantee the optimal path but is fast and efficient for large inputs."
 };
 
-function ClickHandler({ onClick }) {
+function ClickHandler({ onClick, setMapCenter, setMapZoom }) {
   useMapEvents({
     click(e) {
       onClick(e.latlng);
+    },
+    moveend(e) {
+      const map = e.target;
+      setMapCenter(map.getCenter());
+      setMapZoom(map.getZoom());
     }
   });
   return null;
@@ -28,7 +33,6 @@ function ClickHandler({ onClick }) {
 function App() {
   const [bestPath, setBestPath] = useState([]);
   const [algorithm, setAlgorithm] = useState('genetic');
-  const [key, setKey] = useState(0);
   const mapRef = useRef(null);
   const [totalDistance, setTotalDistance] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
@@ -37,61 +41,59 @@ function App() {
   const [mapCenter, setMapCenter] = useState([42.58, 21.0]);
   const [mapZoom, setMapZoom] = useState(9);
   const [routeCities, setRouteCities] = useState([]);
-
+  const [addMode, setAddMode] = useState(true);
+  
   const processAlgorithm = useCallback((selectedCities, forceRun = false) => {
     if (selectedCities.length < 2) return;
 
     const closedLoop = [...selectedCities];
-    setRouteCities([...selectedCities]); // ruaj qytetet reale pa kthimin
+    setRouteCities([...selectedCities]);
     if (closedLoop[0] !== closedLoop[closedLoop.length - 1]) {
       closedLoop.push(closedLoop[0]);
     }
-    
-    if ((algorithm === 'bruteforce' || algorithm === 'dynamic') && closedLoop.length > 10 && !forceRun) {
-      setOpenDialog(true);
-      return;
-    }
 
     const updateMapView = () => {
-      if (!manualMode) return; // vetëm në modalitetin manual
-      if (mapRef.current) {
+      if (!manualMode) return;
+      if (mapRef.current && closedLoop.length >= 2) {
         const group = L.featureGroup(closedLoop.map(c => L.marker([c.lat, c.lon])));
         const bounds = group.getBounds();
-        const center = bounds.getCenter();
-        setMapCenter([center.lat, center.lng]);
-        setMapZoom(mapRef.current.getZoom());
+        if (bounds.isValid()) {
+          mapRef.current.fitBounds(bounds);
+        }
       }
+    };
+
+    const handleWorkerResponse = (event) => {
+      const sortedPath = sortPathWithStart(event.data, closedLoop[0]);
+      setBestPath(sortedPath);
+      setTotalDistance(calculateTotalDistance(sortedPath));
+      updateMapView();
     };
 
     if (algorithm === 'genetic') {
       geneticWorker.postMessage({ cities: closedLoop, populationSize: 100, generations: 500 });
-      geneticWorker.onmessage = (event) => {
-        const sortedPath = sortPathWithStart(event.data, closedLoop[0]);
-        setBestPath(sortedPath);
-        setTotalDistance(calculateTotalDistance(sortedPath));
-        updateMapView();
-        setKey(prevKey => prevKey + 1);
-      };
+      geneticWorker.onmessage = handleWorkerResponse;
     } else {
+      if ((algorithm === 'bruteforce' || algorithm === 'dynamic') && closedLoop.length > 10 && !forceRun) {
+        setOpenDialog(true);
+        return;
+      }
       generalWorker.postMessage({ algorithm, cities: closedLoop });
-      generalWorker.onmessage = (event) => {
-        const sortedPath = sortPathWithStart(event.data, closedLoop[0]);
-        setBestPath(sortedPath);
-        setTotalDistance(calculateTotalDistance(sortedPath));
-        updateMapView();
-        setKey(prevKey => prevKey + 1);
-      };
+      generalWorker.onmessage = handleWorkerResponse;
     }
   }, [algorithm, manualMode]);
-
 
   const handleDialogClose = (accept) => {
     setOpenDialog(false);
     if (accept) {
       let selectedCities = [...(manualMode ? manualPoints : cities)].sort(() => Math.random() - 0.5).slice(0, 9);
+      if (manualMode) {
+        setManualPoints(selectedCities); // përditëso edhe pikët që shfaqen
+      }
       processAlgorithm(selectedCities, true);
     }
   };
+  
 
   useEffect(() => {
     const points = manualMode ? manualPoints : cities;
@@ -101,8 +103,27 @@ function App() {
   }, [algorithm, manualMode, manualPoints, processAlgorithm]);
 
   const handleMapClick = (latlng) => {
-    if (manualMode) {
-      setManualPoints(prev => [...prev, { name: `Point ${prev.length + 1}`, lat: latlng.lat, lon: latlng.lng }]);
+    if (!manualMode) return;
+
+    if (addMode) {
+      setManualPoints(prev => [...prev, {
+        name: `Point ${prev.length + 1}`,
+        lat: latlng.lat,
+        lon: latlng.lng // ✅ përdor 'lon' gjithandej
+      }]);
+    } else {
+      const threshold = 0.01;
+      setManualPoints(prev =>
+        prev.filter(p =>
+          Math.abs(p.lat - latlng.lat) > threshold || Math.abs(p.lon - latlng.lng) > threshold
+        )
+      );
+    }
+  };
+
+  const handleDone = () => {
+    if (manualPoints.length >= 2) {
+      processAlgorithm(manualPoints);
     }
   };
 
@@ -152,6 +173,7 @@ function App() {
           >
             Recalculate Path Auto
           </Button>
+
           <Button 
             variant="text" 
             color="primary" 
@@ -172,24 +194,65 @@ function App() {
           <CardContent style={{ height: '100%' }}>
             <MapContainer 
               ref={mapRef} 
-              key={key} 
               center={mapCenter}
               zoom={mapZoom} 
               style={{ height: "100%", width: "100%" }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {manualMode && <ClickHandler onClick={handleMapClick} />}
+              {manualMode && <ClickHandler onClick={handleMapClick} setMapCenter={setMapCenter} setMapZoom={setMapZoom} />}
               {(manualMode ? manualPoints : cities).map((city, index) => (
-                <Marker key={index} position={[city.lat, city.lon]} icon={L.divIcon({
-                  className: 'custom-div-icon',
-                  html: `<div style="border: 2px solid #3388FF; background-color: #EEEFDC; color: #3388FF; width: 20px; height: 20px; border-radius: 50%; text-align: center; font-size: 12px; font-weight: bold; line-height: 18px;">${index + 1}</div>`
-                })}>
+                <Marker
+                  key={index}
+                  position={[city.lat, city.lon]}
+                  eventHandlers={{
+                    click: () => {
+                      if (manualMode) {
+                        setManualPoints(prev => prev.filter((_, i) => i !== index));
+                      }
+                    }
+                  }}
+                  icon={L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="border: 2px solid #3388FF; background-color: #EEEFDC; color: #3388FF; width: 20px; height: 20px; border-radius: 50%; text-align: center; font-size: 12px; font-weight: bold; line-height: 18px;">${index + 1}</div>`
+                  })}
+                >
                   <Tooltip>{city.name}</Tooltip>
-                </Marker>
+                </Marker>              
               ))}
               {bestPath.length > 0 && (
                 <Polyline positions={[...bestPath.map(city => [city.lat, city.lon]), [bestPath[0].lat, bestPath[0].lon]]} />
               )}
+            <div
+              ref={(el) => {
+                if (el) {
+                  L.DomEvent.disableClickPropagation(el);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#ffffffdd',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                display: manualMode ? 'flex' : 'none',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: 1000,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+              }}
+            >
+              <Button size="small" variant="contained" color="primary" onClick={handleDone}>Done</Button>
+              <Button size="small" variant="outlined" color="primary" onClick={() => setAddMode(true)}>Add More</Button>
+              <Button size="small" variant="outlined" color="error" onClick={() => setAddMode(false)}>Delete</Button>
+              <Button size="small" variant="outlined" onClick={() => {
+                setManualPoints([]);
+                setBestPath([]);
+                setTotalDistance(0);
+              }}>Clear</Button>
+            </div>
+
             </MapContainer>
           </CardContent>
         </Card>
@@ -224,4 +287,3 @@ function getDistance(city1, city2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-  
