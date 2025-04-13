@@ -42,7 +42,9 @@ function App() {
   const [mapZoom, setMapZoom] = useState(9);
   const [routeCities, setRouteCities] = useState([]);
   const [addMode, setAddMode] = useState(true);
-  
+  const [showPath, setShowPath] = useState(false);
+  const [doneClicked, setDoneClicked] = useState(false);
+
   const processAlgorithm = useCallback((selectedCities, forceRun = false) => {
     if (selectedCities.length < 2) return;
 
@@ -88,28 +90,27 @@ function App() {
     if (accept) {
       let selectedCities = [...(manualMode ? manualPoints : cities)].sort(() => Math.random() - 0.5).slice(0, 9);
       if (manualMode) {
-        setManualPoints(selectedCities); // përditëso edhe pikët që shfaqen
+        setShowPath(true);
       }
       processAlgorithm(selectedCities, true);
     }
   };
-  
 
   useEffect(() => {
     const points = manualMode ? manualPoints : cities;
-    if (points.length >= 2) {
+    if (points.length >= 2 && (!manualMode || doneClicked)) {
       processAlgorithm(points);
     }
-  }, [algorithm, manualMode, manualPoints, processAlgorithm]);
+  }, [algorithm, manualMode, manualPoints, processAlgorithm, doneClicked]);
 
   const handleMapClick = (latlng) => {
-    if (!manualMode) return;
+    if (!manualMode || doneClicked) return;
 
     if (addMode) {
       setManualPoints(prev => [...prev, {
         name: `Point ${prev.length + 1}`,
         lat: latlng.lat,
-        lon: latlng.lng // ✅ përdor 'lon' gjithandej
+        lon: latlng.lng
       }]);
     } else {
       const threshold = 0.01;
@@ -123,7 +124,9 @@ function App() {
 
   const handleDone = () => {
     if (manualPoints.length >= 2) {
-      processAlgorithm(manualPoints);
+      setShowPath(true);
+      setDoneClicked(true);
+      // algorithm do be executed via useEffect
     }
   };
 
@@ -168,12 +171,13 @@ function App() {
               setRouteCities([]);
               setMapCenter([42.58, 21.0]);
               setMapZoom(9);
+              setShowPath(false);
+              setDoneClicked(false);
               processAlgorithm(cities);
             }}            
           >
             Recalculate Path Auto
           </Button>
-
           <Button 
             variant="text" 
             color="primary" 
@@ -183,6 +187,8 @@ function App() {
               setManualPoints([]);
               setBestPath([]);
               setTotalDistance(0);
+              setShowPath(false);
+              setDoneClicked(false);
             }}
           >
             Recalculate Path Manually
@@ -206,7 +212,7 @@ function App() {
                   position={[city.lat, city.lon]}
                   eventHandlers={{
                     click: () => {
-                      if (manualMode) {
+                      if (manualMode && !doneClicked) {
                         setManualPoints(prev => prev.filter((_, i) => i !== index));
                       }
                     }
@@ -219,40 +225,45 @@ function App() {
                   <Tooltip>{city.name}</Tooltip>
                 </Marker>              
               ))}
-              {bestPath.length > 0 && (
+              {bestPath.length > 0 && (!manualMode || showPath) && (
                 <Polyline positions={[...bestPath.map(city => [city.lat, city.lon]), [bestPath[0].lat, bestPath[0].lon]]} />
               )}
-            <div
-              ref={(el) => {
-                if (el) {
-                  L.DomEvent.disableClickPropagation(el);
-                }
-              }}
-              style={{
-                position: 'absolute',
-                bottom: 20,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#ffffffdd',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                display: manualMode ? 'flex' : 'none',
-                alignItems: 'center',
-                gap: '8px',
-                zIndex: 1000,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
-              }}
-            >
-              <Button size="small" variant="contained" color="primary" onClick={handleDone}>Done</Button>
-              <Button size="small" variant="outlined" color="primary" onClick={() => setAddMode(true)}>Add More</Button>
-              <Button size="small" variant="outlined" color="error" onClick={() => setAddMode(false)}>Delete</Button>
-              <Button size="small" variant="outlined" onClick={() => {
-                setManualPoints([]);
-                setBestPath([]);
-                setTotalDistance(0);
-              }}>Clear</Button>
-            </div>
-
+              <div
+                ref={(el) => {
+                  if (el) {
+                    L.DomEvent.disableClickPropagation(el);
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  bottom: 20,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: '#ffffffdd',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  display: manualMode ? 'flex' : 'none',
+                  alignItems: 'center',
+                  gap: '8px',
+                  zIndex: 1000,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                <Button size="small" variant="contained" color="primary" onClick={handleDone}>Done</Button>
+                <Button size="small" variant="outlined" color="primary" onClick={() => setAddMode(true)} disabled={doneClicked}>Add More</Button>
+                <Button size="small" variant="outlined" color="error" onClick={() => setAddMode(false)} disabled={doneClicked}>Delete</Button>
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => {
+                    setManualPoints([]);
+                    setBestPath([]);
+                    setTotalDistance(0);
+                    setShowPath(false);
+                    setDoneClicked(false);
+                  }}
+                >Clear</Button>
+              </div>
             </MapContainer>
           </CardContent>
         </Card>
