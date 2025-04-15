@@ -60,7 +60,7 @@ function App() {
         const group = L.featureGroup(closedLoop.map(c => L.marker([c.lat, c.lon])));
         const bounds = group.getBounds();
         if (bounds.isValid()) {
-          mapRef.current.fitBounds(bounds);
+          mapRef.current.fitBounds(bounds, { padding: [50, 50] }); // ose [100, 100] për më shumë largësi
         }
       }
     };
@@ -156,7 +156,7 @@ function App() {
             {algorithmDescriptions[algorithm]}
           </Typography>
           <Typography variant="h6">
-            Number of Cities: {manualMode ? manualPoints.length : routeCities.length}
+           Number of Cities: {manualMode ? (doneClicked ? routeCities.length : manualPoints.length) : routeCities.length}
           </Typography>
           <Typography variant="h6">
             Total Distance: {totalDistance.toFixed(2)} km
@@ -169,12 +169,17 @@ function App() {
               setManualMode(false);
               setBestPath([]);
               setRouteCities([]);
-              setMapCenter([42.58, 21.0]);
-              setMapZoom(9);
               setShowPath(false);
               setDoneClicked(false);
+              setMapCenter([42.58, 21.0]);
+              setMapZoom(9);
+            
+              if (mapRef.current) {
+                mapRef.current.setView([42.58, 21.0], 9); // ose mapRef.current.flyTo(...) nëse do animacion
+              }
+            
               processAlgorithm(cities);
-            }}            
+            }}                  
           >
             Recalculate Path Auto
           </Button>
@@ -191,7 +196,7 @@ function App() {
               setDoneClicked(false);
             }}
           >
-            Recalculate Path Manually
+            Calculate Path Manually
           </Button>
         </Card>
       </Grid>
