@@ -2,7 +2,6 @@ import { totalDistance } from './geneticAlgorithm';
 
 export const bruteForceAlgorithm = (cities) => {
   if (cities.length > 10) {
-    // Nëse ka më shumë se 10 qytete, mos ekzekuto algoritmin dhe kthe një mesazh
     console.error("BruteForce algorithm is too slow for more than 10 cities.");
     return [];
   }

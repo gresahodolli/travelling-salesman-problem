@@ -9,7 +9,7 @@ export const approximationAlgorithm = (cities) => {
   path.push(currentCity);
 
   while (remainingCities.length > 0) {
-    // ✅ Përdor një funksion të veçantë për të shmangur deklarimin e funksionit brenda loop-it
+
     let nearestCity = findNearestCity(currentCity, remainingCities);
 
     if (nearestCity) {
@@ -19,14 +19,11 @@ export const approximationAlgorithm = (cities) => {
     }
   }
 
-  // Rikthehu te qyteti i parë për të mbyllur rrugën
   path.push(path[0]);
 
-  // Përdorim 2-opt për përmirësimin e rrugës
   return twoOptOptimization(path);
 };
 
-// ✅ Funksioni për të gjetur qytetin më të afërt (tani është jashtë loop-it)
 const findNearestCity = (currentCity, cities) => {
   let nearestCity = null;
   let nearestDistance = Infinity;
@@ -46,7 +43,7 @@ const findNearestCity = (currentCity, cities) => {
   return nearestCity;
 };
 
-// ✅ Funksioni 2-opt për përmirësimin e rrugës
+
 const twoOptOptimization = (path) => {
   let improved = true;
   while (improved) {

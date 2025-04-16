@@ -73,35 +73,31 @@ export const geneticAlgorithm = (cities, populationSize = 100, generations = 500
       population.sort((a, b) => totalDistance(a) - totalDistance(b)); // Sort by shortest path
       const newPopulation = population.slice(0, populationSize / 2); // Keep the best half
 
-      // Check for improvement
       const currentBestDistance = totalDistance(newPopulation[0]);
       if (currentBestDistance < bestDistance) {
           bestDistance = currentBestDistance;
-          noImprovementCount = 0; // Reset the counter
+          noImprovementCount = 0; 
       } else {
           noImprovementCount++;
       }
 
-      // Early stopping: stop if no improvement for 50 generations
       if (noImprovementCount >= 50) {
           console.log(`Stopping early at generation ${generation} due to no improvements.`);
           break;
       }
 
-      // Crossover and mutation
       while (newPopulation.length < populationSize) {
           const parent1 = newPopulation[Math.floor(Math.random() * (populationSize / 2))];
           const parent2 = newPopulation[Math.floor(Math.random() * (populationSize / 2))];
           const child = crossover(parent1, parent2);
 
           if (Math.random() < mutationRate) {
-              mutate2Opt(child); // Use the advanced 2-opt mutation
+              mutate2Opt(child); 
           }
 
           newPopulation.push(child);
       }
 
-      // Add random individuals to keep population diversity
       while (newPopulation.length < populationSize) {
           newPopulation.push(shuffle([...cities]));
       }
@@ -110,10 +106,10 @@ export const geneticAlgorithm = (cities, populationSize = 100, generations = 500
   }
 
   population.sort((a, b) => totalDistance(a) - totalDistance(b));
-  return population[0]; // Return the best solution
+  return population[0]; 
 };
 
-// Function to create initial population
+
 export const createInitialPopulation = (cities, populationSize) => {
   const population = [];
   const uniquePaths = new Set();
@@ -122,7 +118,6 @@ export const createInitialPopulation = (cities, populationSize) => {
       let path = shuffle([...cities]);
       let pathString = JSON.stringify(path);
 
-      // Add only unique paths
       if (!uniquePaths.has(pathString)) {
           uniquePaths.add(pathString);
           population.push(path);
