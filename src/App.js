@@ -10,11 +10,40 @@ const geneticWorker = new Worker(new URL('./workers/geneticWorker.js', import.me
 const generalWorker = new Worker(new URL('./workers/generalWorker.js', import.meta.url));
 
 const algorithmDescriptions = {
-  genetic: "Genetic Algorithm is an evolutionary optimization method inspired by natural selection. It finds a near-optimal solution by evolving populations over generations.",
-  bruteforce: "Brute Force Algorithm tests all possible routes to find the absolute shortest path. It guarantees an optimal solution but is computationally expensive.",
-  dynamic: "Dynamic Programming Algorithm (Held-Karp) breaks the problem into smaller subproblems and efficiently finds the shortest route using memoization.",
-  approximation: "Approximation Algorithm provides a quick heuristic solution. It does not guarantee the optimal path but is fast and efficient for large inputs."
+  genetic: `Genetic Algorithm is inspired by natural selection. It starts with a population of routes and improves them using selection, crossover, and mutation.
+
+  While it may not always give the perfect route, it often finds very good solutions in a short time.
+  
+  Its strength lies in evolving paths over generations based on performance.
+  
+  This makes it a popular choice when speed matters more than exactness.`,
+  
+  
+  bruteforce: `Brute Force Algorithm evaluates all possible permutations of the cities to guarantee the shortest path.
+
+  It ensures 100% accuracy but becomes extremely slow as the number of cities increases.
+
+  This approach is ideal for small datasets where the total combinations remain manageable.
+
+  In most real-world applications, it serves as a benchmark rather than a practical solution.`,
+
+  dynamic: `Dynamic Programming (Held-Karp) improves brute force by breaking the problem into overlapping subproblems and using memoization.
+
+  It stores and reuses partial solutions to avoid redundant computations and increase efficiency.
+
+  The algorithm guarantees an exact result but still grows exponentially with input size.
+
+  It offers a good compromise when you need precision for a moderate number of cities.`,
+
+  approximation: `Approximation Algorithms use heuristics to quickly find near-optimal routes. These include methods like Nearest Neighbor and Minimum Spanning Tree.
+
+  They sacrifice accuracy to provide fast solutions, especially useful in time-sensitive scenarios.
+
+  While not exact, they are scalable and perform well in large real-world systems.
+
+  This makes them common in routing applications like delivery networks and transport logistics.`
 };
+
 
 function ClickHandler({ onClick, setMapCenter, setMapZoom }) {
   useMapEvents({
@@ -133,18 +162,46 @@ function App() {
   return (
     <Grid container spacing={2} style={{ padding: 20, height: '100vh' }}>
       <CustomDialog open={openDialog} handleClose={handleDialogClose} />
-      <Grid item xs={12} md={3} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <Card variant="outlined" style={{ padding: 20 }}>
+      <Grid item xs={12} md={3} style={{ height: '100%' }}>
+        <Card 
+          variant="outlined" 
+          style={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            padding: 20,
+            boxSizing: 'border-box' 
+          }}
+        >
           <Typography variant="h5" gutterBottom>
             Traveling Salesman Problem - Kosovo
           </Typography>
+
           <FormControl fullWidth variant="outlined">
-            <InputLabel id="algorithm-label">Select Algorithm</InputLabel>
-            <Select 
+            <InputLabel 
+              id="algorithm-label" 
+              style={{ color: openDialog ? '#1976d2' : undefined }}
+            >
+              Select Algorithm
+            </InputLabel>
+            <Select
               labelId="algorithm-label"
-              value={algorithm} 
+              value={algorithm}
               onChange={(e) => setAlgorithm(e.target.value)}
               label="Select Algorithm"
+              sx={{
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: openDialog ? '#1976d2' : 'rgba(0, 0, 0, 0.23)',
+                  borderWidth: openDialog ? '2px' : '1px'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '2px'
+                }
+              }}
             >
               <MenuItem value="genetic">Genetic Algorithm</MenuItem>
               <MenuItem value="bruteforce">BruteForce Algorithm</MenuItem>
@@ -152,54 +209,73 @@ function App() {
               <MenuItem value="approximation">Approximation Algorithm</MenuItem>
             </Select>
           </FormControl>
-          <Typography variant="body2" style={{ marginTop: 10 }}>
-            {algorithmDescriptions[algorithm]}
-          </Typography>
-          <Typography variant="h6">
-           Number of Cities: {manualMode ? (doneClicked ? routeCities.length : manualPoints.length) : routeCities.length}
-          </Typography>
-          <Typography variant="h6">
-            Total Distance: {totalDistance.toFixed(2)} km
-          </Typography>
-          <Button 
-            variant="text" 
-            color="secondary" 
-            style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
-            onClick={() => {
-              setManualMode(false);
-              setBestPath([]);
-              setRouteCities([]);
-              setShowPath(false);
-              setDoneClicked(false);
-              setMapCenter([42.58, 21.0]);
-              setMapZoom(9);
-            
-              if (mapRef.current) {
-                mapRef.current.setView([42.58, 21.0], 9); // ose mapRef.current.flyTo(...) nëse do animacion
-              }
-            
-              processAlgorithm(cities);
-            }}                  
-          >
-            Recalculate Path Auto
-          </Button>
-          <Button 
-            variant="text" 
-            color="primary" 
-            style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
-            onClick={() => {
-              setManualMode(true);
-              setManualPoints([]);
-              setBestPath([]);
-              setTotalDistance(0);
-              setShowPath(false);
-              setDoneClicked(false);
+
+          {/* Përshkrimi që merr hapësirën e mbetur dhe nuk tejkalon lartësinë totale */}
+          <div style={{ flexGrow: 1, overflowY: 'auto', marginTop: 16, marginBottom: 16 }}>
+          <Typography 
+            variant="body2" 
+            style={{ 
+              whiteSpace: 'pre-line',
+              fontSize: '0.95rem',
+              lineHeight: 1.6,
+              fontWeight: 300,
+              letterSpacing: '0.4px',
+              color: '#444'
             }}
           >
-            Calculate Path Manually
-          </Button>
+            {algorithmDescriptions[algorithm]}
+          </Typography>
+          </div>
+
+          {/* Footer: info dhe butonat, gjithmonë në fund */}
+          <div>
+            <Typography variant="h6">
+              Number of Cities: {manualMode ? (doneClicked ? routeCities.length : manualPoints.length) : routeCities.length}
+            </Typography>
+            <Typography variant="h6">
+              Total Distance: {totalDistance.toFixed(2)} km
+            </Typography>
+
+            <Button 
+              variant="text" 
+              color="secondary" 
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
+              onClick={() => {
+                setManualMode(false);
+                setBestPath([]);
+                setRouteCities([]);
+                setShowPath(false);
+                setDoneClicked(false);
+                setMapCenter([42.58, 21.0]);
+                setMapZoom(9);
+                if (mapRef.current) {
+                  mapRef.current.setView([42.58, 21.0], 9);
+                }
+                processAlgorithm(cities);
+              }}            
+            >
+              Recalculate Path Auto
+            </Button>
+
+            <Button 
+              variant="text" 
+              color="primary" 
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
+              onClick={() => {
+                setManualMode(true);
+                setManualPoints([]);
+                setBestPath([]);
+                setTotalDistance(0);
+                setShowPath(false);
+                setDoneClicked(false);
+              }}
+            >
+              Calculate Path Manually
+            </Button>
+          </div>
         </Card>
       </Grid>
+
       <Grid item xs={12} md={9}>
         <Card variant="outlined" style={{ height: '100%' }}>
           <CardContent style={{ height: '100%' }}>
