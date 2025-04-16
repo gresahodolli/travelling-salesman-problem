@@ -1,75 +1,96 @@
-<<<<<<< HEAD
-# travelling-salesman-problem
-travelling-salesman-problem
-=======
-# Getting Started with Create React App
+# Traveling Salesman Problem – Kosovo (React + Leaflet App)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A web application that visualizes and solves the Traveling Salesman Problem (TSP) using multiple algorithms over cities in **Kosovo**, displayed interactively on a map.
 
-## Available Scripts
+![App Screenshot](public/screenshots/tsp-preview.png)
 
-In the project directory, you can run:
+This app allows both **automatic and manual** city selection, supports multiple optimization techniques, and provides a smooth and responsive user interface.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🧽 Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- 🗺 Interactive map of Kosovo (Leaflet.js)
+- 🧠 Multiple algorithm choices:
+  - Genetic Algorithm
+  - Brute Force
+  - Dynamic Programming (Held-Karp)
+  - Approximation (Nearest Neighbor + 2-opt)
+- 🛠 Manual or automatic city selection
+- 📊 Distance calculation and real-time results
+- 💬 Dialog prompts for large city inputs in slow algorithms
+- ⚙️ Web workers for non-blocking processing
+- 💎 Refined UI with consistent styling and layout
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🚀 Getting Started
 
-### `npm run build`
+### 1. Clone the Repository
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+git clone https://github.com/gresahodolli/travelling-salesman-problem.git tsp-kosovo
+cd tsp-kosovo
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 2. Install Dependencies
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+```
 
-### `npm run eject`
+### 3. Run the App
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 📚 Algorithms Explained
 
-## Learn More
+### 🧬 Genetic Algorithm
+An evolutionary algorithm that maintains a population of possible routes. It applies selection, crossover, and mutation over generations to evolve toward better solutions.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Fast and suitable for larger datasets.
+- Does not guarantee optimality, but offers good approximations.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 🧮 Brute Force
+Tests all possible permutations to find the absolute shortest path.
 
-### Code Splitting
+- Guarantees optimal results.
+- Not scalable – performance drops drastically as cities increase.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 🧠 Dynamic Programming (Held-Karp)
+Optimizes brute force by breaking the problem into overlapping subproblems and storing results (memoization).
 
-### Analyzing the Bundle Size
+- Still exponential in time, but faster than brute force.
+- Best for medium-sized city counts where exactness is needed.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 🧩 Approximation
+Uses heuristics like Nearest Neighbor and 2-opt to find a near-optimal solution.
 
-### Making a Progressive Web App
+- Fast and scalable.
+- Suitable for real-time or large routing systems.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## 📝 Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- Manual mode allows clicking to place cities on the map.
+- In manual mode, algorithms are executed only after pressing **Done**.
+- Brute Force and Dynamic Programming will trigger a dialog warning if city count > 9.
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 📄 License
 
-### `npm run build` fails to minify
+This project is open-source and available under the [MIT License](LICENSE).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
->>>>>>> 213f382 (Initial commit)
+---
+
+## 👩‍💻 Author
+
+**Gresa Hodolli**  
