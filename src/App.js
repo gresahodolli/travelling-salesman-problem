@@ -182,10 +182,24 @@ function App() {
             Traveling Salesman Problem - Kosovo
           </Typography>
 
-          <FormControl fullWidth variant="outlined">
+          <FormControl fullWidth variant="outlined"
+            sx={{
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1976d2',
+              },
+              '&:hover label': {
+                color: '#1976d2',
+              }
+            }}
+          >
             <InputLabel 
-              id="algorithm-label" 
-              style={{ color: openDialog ? '#1976d2' : undefined }}
+              id="algorithm-label"
+              sx={{
+                color: openDialog ? '#1976d2' : undefined,
+                '&.Mui-focused': {
+                  color: '#1976d2'
+                }
+              }}
             >
               Select Algorithm
             </InputLabel>
@@ -204,7 +218,7 @@ function App() {
                 },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#1976d2',
-                  borderWidth: '2px'
+                  borderWidth: '1.6px'
                 }
               }}
             >
@@ -242,7 +256,7 @@ function App() {
             <Button 
               variant="text" 
               color="secondary" 
-              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 1 }}
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 0.88 }}
               onClick={() => {
                 setManualMode(false);
                 setBestPath([]);
@@ -263,7 +277,7 @@ function App() {
             <Button 
               variant="text" 
               color="primary" 
-              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 1 }}
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 0.88 }}
               onClick={() => {
                 setManualMode(true);
                 setManualPoints([]);
