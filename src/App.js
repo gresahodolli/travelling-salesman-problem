@@ -9,6 +9,7 @@ import CustomDialog from './components/CustomDialog';
 const geneticWorker = new Worker(new URL('./workers/geneticWorker.js', import.meta.url));
 const generalWorker = new Worker(new URL('./workers/generalWorker.js', import.meta.url));
 
+// Descriptions for each algorithm type
 const algorithmDescriptions = {
   genetic: `Genetic Algorithm is inspired by natural selection. It starts with a population of routes and improves them using selection, crossover, and mutation.
 
@@ -44,7 +45,7 @@ const algorithmDescriptions = {
   This makes them common in routing applications like delivery networks and transport logistics.`
 };
 
-
+// Tracks user interactions with the map
 function ClickHandler({ onClick, setMapCenter, setMapZoom }) {
   useMapEvents({
     click(e) {
@@ -74,11 +75,14 @@ function App() {
   const [showPath, setShowPath] = useState(false);
   const [doneClicked, setDoneClicked] = useState(false);
 
+  // Triggers the algorithm in a worker and handles the result
   const processAlgorithm = useCallback((selectedCities, forceRun = false) => {
     if (selectedCities.length < 2) return;
 
     const closedLoop = [...selectedCities];
     setRouteCities([...selectedCities]);
+
+    // Ensure path returns to the starting point
     if (closedLoop[0] !== closedLoop[closedLoop.length - 1]) {
       closedLoop.push(closedLoop[0]);
     }
@@ -89,7 +93,7 @@ function App() {
         const group = L.featureGroup(closedLoop.map(c => L.marker([c.lat, c.lon])));
         const bounds = group.getBounds();
         if (bounds.isValid()) {
-          mapRef.current.fitBounds(bounds, { padding: [50, 50] }); // ose [100, 100] për më shumë largësi
+          mapRef.current.fitBounds(bounds, { padding: [50, 50] }); 
         }
       }
     };
@@ -155,13 +159,14 @@ function App() {
     if (manualPoints.length >= 2) {
       setShowPath(true);
       setDoneClicked(true);
-      // algorithm do be executed via useEffect
     }
   };
 
   return (
     <Grid container spacing={2} style={{ padding: 20, height: '100vh' }}>
       <CustomDialog open={openDialog} handleClose={handleDialogClose} />
+      
+      {/* Sidebar with controls and stats */}
       <Grid item xs={12} md={3} style={{ height: '100%' }}>
         <Card 
           variant="outlined" 
@@ -210,7 +215,6 @@ function App() {
             </Select>
           </FormControl>
 
-          {/* Përshkrimi që merr hapësirën e mbetur dhe nuk tejkalon lartësinë totale */}
           <div style={{ flexGrow: 1, overflowY: 'auto', marginTop: 16, marginBottom: 16 }}>
           <Typography 
             variant="body2" 
@@ -227,7 +231,6 @@ function App() {
           </Typography>
           </div>
 
-          {/* Footer: info dhe butonat, gjithmonë në fund */}
           <div>
             <Typography variant="h6">
               Number of Cities: {manualMode ? (doneClicked ? routeCities.length : manualPoints.length) : routeCities.length}
@@ -239,7 +242,7 @@ function App() {
             <Button 
               variant="text" 
               color="secondary" 
-              style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 1 }}
               onClick={() => {
                 setManualMode(false);
                 setBestPath([]);
@@ -260,7 +263,7 @@ function App() {
             <Button 
               variant="text" 
               color="primary" 
-              style={{ marginTop: 10, textTransform: 'none', fontSize: '12px', opacity: 0.7 }}
+              style={{ marginTop: 10, textTransform: 'none', fontSize: '13px', opacity: 1 }}
               onClick={() => {
                 setManualMode(true);
                 setManualPoints([]);
@@ -275,7 +278,8 @@ function App() {
           </div>
         </Card>
       </Grid>
-
+      
+      {/* Map section remains unchanged */}
       <Grid item xs={12} md={9}>
         <Card variant="outlined" style={{ height: '100%' }}>
           <CardContent style={{ height: '100%' }}>
@@ -306,9 +310,12 @@ function App() {
                   <Tooltip>{city.name}</Tooltip>
                 </Marker>              
               ))}
+
               {bestPath.length > 0 && (!manualMode || showPath) && (
                 <Polyline positions={[...bestPath.map(city => [city.lat, city.lon]), [bestPath[0].lat, bestPath[0].lon]]} />
               )}
+
+              {/* Manual mode controls */}
               <div
                 ref={(el) => {
                   if (el) {
@@ -355,6 +362,7 @@ function App() {
 
 export default App;
 
+// Shift the path so it starts with the given city
 function sortPathWithStart(path, startNode) {
   if (!path || path.length === 0) return path;
   const startIndex = path.findIndex(city => city.lat === startNode.lat && city.lon === startNode.lon);
@@ -371,6 +379,7 @@ function calculateTotalDistance(path) {
   return distance;
 }
 
+// Calculate distance using Haversine formula
 function getDistance(city1, city2) {
   const R = 6371;
   const dLat = (city2.lat - city1.lat) * (Math.PI / 180);

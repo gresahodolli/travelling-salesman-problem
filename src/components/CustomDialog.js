@@ -6,6 +6,8 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
 
+
+// Simple reusable dialog to confirm running slow algorithms
 function CustomDialog({ open, handleClose }) {
     return (
         <Dialog
