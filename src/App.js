@@ -156,6 +156,11 @@ function App() {
   };
 
   const handleDone = () => {
+    if (manualPoints.length < 3 && algorithm === 'genetic') {
+    alert("Genetic Algorithm requires at least 3 cities.");
+    return;
+    }
+
     if (manualPoints.length >= 2) {
       setShowPath(true);
       setDoneClicked(true);
@@ -247,7 +252,7 @@ function App() {
 
           <div>
             <Typography variant="h6">
-              Number of Cities: {manualMode ? (doneClicked ? routeCities.length : manualPoints.length) : routeCities.length}
+              Number of Cities: {manualMode ? manualPoints.length : routeCities.length}
             </Typography>
             <Typography variant="h6">
               Total Distance: {totalDistance.toFixed(2)} km
@@ -389,6 +394,11 @@ function calculateTotalDistance(path) {
   let distance = 0;
   for (let i = 0; i < path.length - 1; i++) {
     distance += getDistance(path[i], path[i + 1]);
+  }
+
+  // Përfshi kthimin në fillim nëse nuk është prezent
+  if (path.length >= 2 && (path[0].lat !== path[path.length - 1].lat || path[0].lon !== path[path.length - 1].lon)) {
+    distance += getDistance(path[path.length - 1], path[0]);
   }
   return distance;
 }
