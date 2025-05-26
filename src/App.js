@@ -5,6 +5,9 @@ import cities from './cities';
 import 'leaflet/dist/leaflet.css';
 import { Button, Select, MenuItem, FormControl, InputLabel, Grid, Card, CardContent, Typography } from '@mui/material';
 import CustomDialog from './components/CustomDialog';
+import { bruteForceWithMatrix, calculatePathDistance } from './components/algorithms/bruteForceWithMatrix';
+import { getDistanceMatrix } from './api/orsRouting';
+import { getORSRoutePolyline } from './api/orsDirections';
 
 const geneticWorker = new Worker(new URL('./workers/geneticWorker.js', import.meta.url));
 const generalWorker = new Worker(new URL('./workers/generalWorker.js', import.meta.url));
@@ -74,9 +77,35 @@ function App() {
   const [addMode, setAddMode] = useState(true);
   const [showPath, setShowPath] = useState(false);
   const [doneClicked, setDoneClicked] = useState(false);
+  const [routeType, setRouteType] = useState('air');
+  const [realPolyline, setRealPolyline] = useState([]);
 
+  const drawRealRoute = async (bestPath) => {
+    let fullPolyline = [];
+
+    for (let i = 0; i < bestPath.length - 1; i++) {
+      try {
+        const segment = await getORSRoutePolyline(bestPath[i], bestPath[i + 1]);
+        fullPolyline = fullPolyline.concat(segment);
+      } catch (error) {
+        console.error("Error fetching segment:", bestPath[i], "→", bestPath[i + 1], error);
+      }
+    }
+
+    try {
+      const closingSegment = await getORSRoutePolyline(bestPath[bestPath.length - 1], bestPath[0]);
+      fullPolyline = fullPolyline.concat(closingSegment);
+    } catch (error) {
+      console.error("Error closing loop:", error);
+    }
+
+    setRealPolyline(fullPolyline);
+  };
+  
   // Triggers the algorithm in a worker and handles the result
   const processAlgorithm = useCallback((selectedCities, forceRun = false) => {
+    console.log("Running processAlgorithm with:", { algorithm, routeType });
+
     if (selectedCities.length < 2) return;
 
     const closedLoop = [...selectedCities];
@@ -105,6 +134,37 @@ function App() {
       updateMapView();
     };
 
+    if (routeType === 'optimized-driving' && algorithm === 'bruteforce') {
+      let citiesToUse = closedLoop;
+
+      if (closedLoop.length > 9 && !forceRun) {
+        setOpenDialog(true); 
+        return;
+      }
+
+      if (closedLoop.length > 9 && forceRun) {
+        citiesToUse = [...closedLoop].sort(() => Math.random() - 0.5).slice(0, 9);
+      }
+
+      getDistanceMatrix(citiesToUse).then((matrix) => {
+        const best = bruteForceWithMatrix(citiesToUse, matrix);
+        const looped = [...best];
+        if (looped.length >= 2 && (
+          looped[0].lat !== looped[looped.length - 1].lat ||
+          looped[0].lon !== looped[looped.length - 1].lon
+        )) {
+          looped.push(looped[0]);
+        }
+        setBestPath(looped);
+        drawRealRoute(looped);
+        const indexPath = best.map(city => citiesToUse.findIndex(c => c.name === city.name));
+        setTotalDistance(calculatePathDistance(indexPath, matrix));
+      });
+
+      return;
+    }
+
+
     if (algorithm === 'genetic') {
       geneticWorker.postMessage({ cities: closedLoop, populationSize: 100, generations: 500 });
       geneticWorker.onmessage = handleWorkerResponse;
@@ -116,7 +176,8 @@ function App() {
       generalWorker.postMessage({ algorithm, cities: closedLoop });
       generalWorker.onmessage = handleWorkerResponse;
     }
-  }, [algorithm, manualMode]);
+  }, [algorithm, manualMode, routeType]);
+
 
   const handleDialogClose = (accept) => {
     setOpenDialog(false);
@@ -132,9 +193,14 @@ function App() {
   useEffect(() => {
     const points = manualMode ? manualPoints : cities;
     if (points.length >= 2 && (!manualMode || doneClicked)) {
+      console.log("[useEffect] Triggered from change in algorithm or routeType");
       processAlgorithm(points);
     }
-  }, [algorithm, manualMode, manualPoints, processAlgorithm, doneClicked]);
+  }, [algorithm, routeType, manualMode, manualPoints, doneClicked, processAlgorithm]);
+
+  useEffect(() => {
+    setRealPolyline([]);
+  }, [routeType]);
 
   const handleMapClick = (latlng) => {
     if (!manualMode || doneClicked) return;
@@ -157,15 +223,18 @@ function App() {
 
   const handleDone = () => {
     if (manualPoints.length < 3 && algorithm === 'genetic') {
-    alert("Genetic Algorithm requires at least 3 cities.");
-    return;
+      alert("Genetic Algorithm requires at least 3 cities.");
+      return;
     }
 
     if (manualPoints.length >= 2) {
       setShowPath(true);
       setDoneClicked(true);
+
+      processAlgorithm(manualPoints); 
     }
   };
+
 
   return (
     <Grid container spacing={2} style={{ padding: 20, height: '100vh' }}>
@@ -186,7 +255,6 @@ function App() {
           <Typography variant="h5" gutterBottom>
             Traveling Salesman Problem - Kosovo
           </Typography>
-
           <FormControl fullWidth variant="outlined"
             sx={{
               '&:hover .MuiOutlinedInput-notchedOutline': {
@@ -239,7 +307,7 @@ function App() {
             variant="body2" 
             style={{ 
               whiteSpace: 'pre-line',
-              fontSize: '0.95rem',
+              fontSize: '0.93rem',
               lineHeight: 1.6,
               fontWeight: 300,
               letterSpacing: '0.4px',
@@ -290,13 +358,38 @@ function App() {
                 setTotalDistance(0);
                 setShowPath(false);
                 setDoneClicked(false);
+                setRealPolyline([]); 
               }}
             >
               Calculate Path Manually
             </Button>
+            <Typography
+              variant="body2"
+              onClick={() => setRouteType(routeType === 'air' ? 'optimized-driving' : 'air')}
+              style={{
+                marginTop: 5,
+                marginBottom: -5,
+                cursor: 'pointer',
+                color: '#666',
+                fontSize: '10.5px',
+                textAlign: 'center',
+                opacity: 0.75,
+                textDecoration: 'underline',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%'
+              }}
+            >
+              {routeType === 'air'
+                ? 'Use Real Road Route Demo (City Order from Algorithm)'
+                : 'Switch to Air Route'}
+            </Typography>
+
           </div>
         </Card>
       </Grid>
+      
       
       {/* Map section remains unchanged */}
       <Grid item xs={12} md={9}>
@@ -330,9 +423,17 @@ function App() {
                 </Marker>              
               ))}
 
-              {bestPath.length > 0 && (!manualMode || showPath) && (
-                <Polyline positions={[...bestPath.map(city => [city.lat, city.lon]), [bestPath[0].lat, bestPath[0].lon]]} />
+              {routeType === 'optimized-driving' && realPolyline.length > 0 && (
+                <Polyline positions={realPolyline} color="red" />
               )}
+
+              {routeType !== 'optimized-driving' && bestPath.length > 0 && (!manualMode || showPath) && (
+                <Polyline 
+                  positions={[...bestPath.map(city => [city.lat, city.lon]), [bestPath[0].lat, bestPath[0].lon]]} 
+                  color="blue"
+                />
+              )}
+
 
               {/* Manual mode controls */}
               <div
@@ -368,6 +469,7 @@ function App() {
                     setTotalDistance(0);
                     setShowPath(false);
                     setDoneClicked(false);
+                    setRealPolyline([]); 
                   }}
                 >Clear</Button>
               </div>
@@ -396,7 +498,6 @@ function calculateTotalDistance(path) {
     distance += getDistance(path[i], path[i + 1]);
   }
 
-  // Përfshi kthimin në fillim nëse nuk është prezent
   if (path.length >= 2 && (path[0].lat !== path[path.length - 1].lat || path[0].lon !== path[path.length - 1].lon)) {
     distance += getDistance(path[path.length - 1], path[0]);
   }
